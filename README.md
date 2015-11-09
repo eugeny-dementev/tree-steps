@@ -3,7 +3,7 @@
 __Appstate__ is a Javascript state manager, based on [Cerebral](https://github.com/christianalfoni/cerebral) signals conception.
 Appstate use [Baobab](https://github.com/Yomguithereal/baobab) as main state storage.
 
-# Usage
+## Usage
 
 ### appstate.create(name, actions)
 
