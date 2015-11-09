@@ -54,7 +54,7 @@ module.exports = {
         // Start recursive run tree branches
         runBranch(0, { tree, args, signal, promise, start, state });
       });
-    }
+    };
   }
 };
 
@@ -92,9 +92,11 @@ function runBranch (index, options) {
     return;
   }
 
-  return Array.isArray(currentBranch) ?
-    runAsyncBranch(index, currentBranch, options) :
+  if (Array.isArray(currentBranch)) {
+    runAsyncBranch(index, currentBranch, options);
+  } else {
     runSyncBranch(index, currentBranch, options);
+  }
 }
 
 /**
@@ -188,7 +190,7 @@ function runSyncBranch (index, currentBranch, options) {
       action.outputPath = result.path;
       var output = action.outputs[result.path];
 
-      var result = runBranch(0, {
+      var runResult = runBranch(0, {
         args, signal, state, start, promise,
         tree: {
           actions: tree.actions,
@@ -196,18 +198,17 @@ function runSyncBranch (index, currentBranch, options) {
         }
       });
 
-      if (result && result.then) {
-        return result.then(function () {
+      if (runResult && runResult.then) {
+        return result.then(() => {
           return runBranch(index + 1, options);
         });
-      } else {
-        return runBranch(index + 1, options);
       }
-    } else {
+
       return runBranch(index + 1, options);
     }
+    return runBranch(index + 1, options);
   } catch (e) {
-    console.log(e.stack);
+    // do nothing...
   }
 }
 
@@ -233,11 +234,11 @@ function addOutputs (action, next) {
     next.success = next.bind(null, 'success');
     next.error = next.bind(null, 'error');
   } else if (Array.isArray(action.outputs)) {
-    action.outputs.forEach(function (key) {
+    action.outputs.forEach(key => {
       next[key] = next.bind(null, key);
     });
   } else {
-    Object.keys(action.outputs).forEach(function (key) {
+    Object.keys(action.outputs).forEach(key => {
       next[key] = next.bind(null, key);
     });
   }
@@ -267,7 +268,7 @@ function createNextFunction (action, resolver) {
     } else {
       next._result = result;
     }
-  }
+  };
 }
 
 /**
@@ -348,8 +349,7 @@ function getStateMutatorsAndAccessors (state, action, isAsync) {
     methods = methods.concat(accessors);
   }
 
-  var stateMethods = Object.create(null);
-  methods.reduce((stateMethods, methodName) => {
+  return methods.reduce((stateMethods, methodName) => {
     var method = state[methodName].bind(state);
 
     stateMethods[methodName] = (...args) => {
@@ -359,7 +359,7 @@ function getStateMutatorsAndAccessors (state, action, isAsync) {
       if (Array.isArray(firstArg)) {
         path = args.shift();
       } else if (typeof firstArg === 'string') {
-        path = [args.shift()]
+        path = [args.shift()];
       }
 
       if (args.length === 0) {
@@ -376,9 +376,7 @@ function getStateMutatorsAndAccessors (state, action, isAsync) {
     };
 
     return stateMethods;
-  }, stateMethods);
-
-  return stateMethods;
+  }, Object.create(null));
 }
 
 /**
@@ -429,7 +427,7 @@ function transformAsyncBranch (action, parentAction, path, actions, isSync) {
       path.pop();
       return result;
     })
-    .filter(action => !!action);
+    .filter(branch => !!branch);
 }
 
 /**
@@ -447,10 +445,6 @@ function transformAsyncBranch (action, parentAction, path, actions, isSync) {
  *  }|undefined}
  */
 function transformSyncBranch (action, parentAction, path, actions, isSync) {
-  if (typeof action !== 'function') {
-    return;
-  }
-
   var branch = {
     name: getFunctionName(action),
     args: {},
@@ -538,8 +532,8 @@ function getFunctionName (fn) {
  */
 function merge (target, source) {
   source = source || {};
-  return Object.keys(source).reduce(function (target, key) {
-    target[key] = source[key];
+  return Object.keys(source).reduce((targetKey, key) => {
+    targetKey[key] = source[key];
     return target;
   }, target);
 }
