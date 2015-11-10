@@ -1,4 +1,4 @@
-# AppState
+# AppState [![Build Status](https://travis-ci.org/markuplab/appstate.svg)](https://travis-ci.org/markuplab/appstate)
 
 __Appstate__ is a Javascript state manager, based on [Cerebral](https://github.com/christianalfoni/cerebral) signals conception.
 Appstate use [Baobab](https://github.com/Yomguithereal/baobab) as main state storage.
