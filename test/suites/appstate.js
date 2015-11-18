@@ -43,7 +43,7 @@ lab.experiment('#appstate', function () {
     var name = 'test';
     var signal = appstate.create(name, [sync]);
 
-    signal(tree, { hello: 'world' });
+    signal(tree, {}, { hello: 'world' });
     assert.equal(tree.get('hello'), 'world');
 
     done();
@@ -267,7 +267,7 @@ lab.experiment('#appstate', function () {
       ]
     ]);
 
-    signal(tree, { test: 'test' });
+    signal(tree, {}, { test: 'test' });
   });
 
   lab.test('Deep async actions must run correctly', function (done) {
@@ -422,5 +422,86 @@ lab.experiment('#appstate', function () {
     ]);
 
     signal(tree);
+  });
+
+  lab.test('should can pass services as 4 arg', function (done) {
+    function sync (args, state, output, services) {
+      assert(services.test);
+      done();
+    }
+
+    var name = 'test';
+    var signal = appstate.create(name, [
+      sync
+    ]);
+
+    signal(tree, { test: 'test' });
+  });
+
+  lab.test('should reject signal promise if error in sync action', function(done) {
+    function syncWithError (args, state) {
+      state.set('test', args.undefinedArg.deepArg);
+    }
+
+    var name = 'test';
+    var signal = appstate.create(name, [syncWithError]);
+
+    signal(tree)
+      .catch((e) => {
+        assert(e instanceof Error);
+        done();
+      });
+  });
+
+  lab.test('should reject signal promise if error in async action', function(done) {
+    function asyncWithError (args, state, output) {
+      state.set('test', args.undefinedArg.deepArg);
+      output.success();
+    }
+
+    var name = 'test';
+    var signal = appstate.create(name, [
+      [
+        asyncWithError, {
+          success: [
+            noop
+          ]
+        }
+      ]
+    ]);
+
+    signal(tree)
+      .catch((e) => {
+        assert(e instanceof Error);
+        done();
+      });
+  });
+
+  lab.test('should reject signal promise if error in async output action', function(done) {
+    function syncWithError (args, state) {
+      state.set('test', args.undefinedArg.deepArg);
+    }
+
+    function async (args, state, output) {
+      output.success();
+    }
+
+    var name = 'test';
+    var signal = appstate.create(name, [
+      [
+        async,
+        {
+          success: [
+            syncWithError
+          ]
+        }
+      ]
+    ]);
+
+    signal(tree)
+      .catch((e) => {
+        assert(e instanceof Error);
+        done();
+      });
   });
 });

@@ -34,9 +34,12 @@ module.exports = {
   create (name, actions) {
     analyze(name, actions);
 
-    return (state, args = {}) => {
+    return (state, services = {}, args = {}) => {
       return new Promise((resolve, reject) => {
-        checkArgs(args, name);
+        var promise = { resolve, reject };
+        var start = Date.now();
+
+        checkArgs(args, name, promise);
         // Transform signal definition to flatten array
         var tree = staticTree(actions);
 
@@ -48,11 +51,8 @@ module.exports = {
           duration: 0
         };
 
-        var start = Date.now();
-        var promise = { resolve, reject };
-
         // Start recursive run tree branches
-        runBranch(0, { tree, args, signal, promise, start, state });
+        runBranch(0, { tree, args, signal, promise, start, state, services });
       });
     };
   }
@@ -69,6 +69,7 @@ module.exports = {
  * @param {Object} options.promise
  * @param {Date}   options.start
  * @param {Baobab} options.state
+ * @param {Object} options.services
  */
 function runBranch (index, options) {
   var { tree, signal, start, promise } = options;
@@ -110,10 +111,11 @@ function runBranch (index, options) {
  * @param {Object} options.promise
  * @param {Date}   options.start
  * @param {Baobab} options.state
+ * @param {Object} options.services
  * @returns {Promise}
  */
 function runAsyncBranch (index, currentBranch, options) {
-  var { tree, args, signal, state, promise, start } = options;
+  var { tree, args, signal, state, promise, start, services } = options;
 
   var promises = currentBranch
     .map(action => {
@@ -124,7 +126,8 @@ function runAsyncBranch (index, currentBranch, options) {
       action.args = merge({}, args);
 
       var next = createNextAsyncAction(actionFunc);
-      actionFunc.apply(null, actionArgs.concat(next.fn));
+
+      actionFunc.apply(null, actionArgs.concat(next.fn, services));
 
       return next.promise
         .then(result => {
@@ -145,7 +148,8 @@ function runAsyncBranch (index, currentBranch, options) {
               }
             });
           }
-        });
+        })
+        .catch((e) => promise.reject(e));
     });
 
   return Promise.all(promises)
@@ -163,10 +167,11 @@ function runAsyncBranch (index, currentBranch, options) {
  * @param {Object} options.promise
  * @param {Date}   options.start
  * @param {Baobab} options.state
+ * @param {Object} options.services
  * @returns {Promise|undefined}
  */
 function runSyncBranch (index, currentBranch, options) {
-  var { args, tree, signal, state, start, promise } = options;
+  var { args, tree, signal, state, start, promise, services } = options;
 
   try {
     var action = currentBranch;
@@ -177,7 +182,7 @@ function runSyncBranch (index, currentBranch, options) {
     action.args = merge({}, args);
 
     var next = createNextSyncAction(actionFunc);
-    actionFunc.apply(null, actionArgs.concat(next));
+    actionFunc.apply(null, actionArgs.concat(next, services));
 
     var result = next._result || {};
     merge(args, result.args);
@@ -208,7 +213,7 @@ function runSyncBranch (index, currentBranch, options) {
     }
     return runBranch(index + 1, options);
   } catch (e) {
-    // do nothing...
+    promise.reject(e);
   }
 }
 
@@ -503,12 +508,13 @@ function analyze (signalName, actions) {
  * Check arguments
  * @param {*} args
  * @param {String} name
+ * @param {Object} promise
  */
-function checkArgs (args, name) {
+function checkArgs (args, name, promise) {
   try {
     JSON.stringify(args);
   } catch (e) {
-    throw new Error(`State - Could not serialize arguments to signal. Please check signal ${name}`);
+    promise.reject(`State - Could not serialize arguments to signal. Please check signal ${name}`);
   }
 }
 
