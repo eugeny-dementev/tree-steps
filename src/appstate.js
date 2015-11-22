@@ -141,7 +141,7 @@ function runAsyncBranch (index, currentBranch, options) {
             var output = action.outputs[result.path];
 
             return runBranch(0, {
-              args, signal, state, start, promise,
+              args, signal, state, start, promise, services,
               tree: {
                 actions: tree.actions,
                 branches: output
@@ -196,7 +196,7 @@ function runSyncBranch (index, currentBranch, options) {
       var output = action.outputs[result.path];
 
       var runResult = runBranch(0, {
-        args, signal, state, start, promise,
+        args, signal, state, start, promise, services,
         tree: {
           actions: tree.actions,
           branches: output
