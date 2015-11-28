@@ -355,50 +355,6 @@ lab.experiment('#appstate', function () {
     signal(tree);
   });
 
-  lab.test('should can have ways to output in custom outputs', function (done) {
-    function sync (args, state, output) {
-      output.custom();
-    }
-
-    sync.outputs = ['custom'];
-
-    function custom () {
-      done();
-    }
-
-    var name = 'test';
-    var signal = appstate.create(name, [
-      sync, {
-        custom: [custom]
-      }
-    ]);
-
-    signal(tree);
-  });
-
-  lab.test('should can accept outputs like objects', function (done) {
-    function sync (args, state, output) {
-      output.custom();
-    }
-
-    sync.outputs = {
-      custom: true
-    };
-
-    function custom () {
-      done();
-    }
-
-    var name = 'test';
-    var signal = appstate.create(name, [
-      sync, {
-        custom: [custom]
-      }
-    ]);
-
-    signal(tree);
-  });
-
   lab.test('should can output from sync to async action', function (done) {
     function sync (args, state, output) {
       output.success();
@@ -494,6 +450,56 @@ lab.experiment('#appstate', function () {
           success: [
             syncWithError
           ]
+        }
+      ]
+    ]);
+
+    signal(tree)
+      .catch((e) => {
+        assert(e instanceof Error);
+        done();
+      });
+  });
+
+  lab.test('should autobind outputs on async action', (done) => {
+    function async ({}, state, output) {
+      output.custom();
+    }
+
+    var signal = appstate.create('test', [
+      [
+        async, {
+          custom: [() => done()]
+        }
+      ]
+    ]);
+
+    signal(tree);
+  });
+
+  lab.test('should autobind outputs on sync action', (done) => {
+    function sync ({}, state, output) {
+      output.custom();
+    }
+
+    var signal = appstate.create('test', [
+      sync, {
+        custom: [() => done()]
+      }
+    ]);
+
+    signal(tree);
+  });
+
+  lab.test('should throw error, if no executed output in async actions', (done) => {
+    function async ({}, state, output) {
+      output.success();
+    }
+
+    var signal = appstate.create('test', [
+      [
+        async, {
+          custom: []
         }
       ]
     ]);

@@ -121,11 +121,12 @@ function runAsyncBranch (index, currentBranch, options) {
     .map(action => {
       var actionFunc = tree.actions[action.actionIndex];
       var actionArgs = createActionArgs(args, action, state, true);
+      var outputs = action.outputs ? Object.keys(action.outputs) : [];
 
       action.isExecuting = true;
       action.args = merge({}, args);
 
-      var next = createNextAsyncAction(actionFunc);
+      var next = createNextAsyncAction(actionFunc, outputs);
 
       actionFunc.apply(null, actionArgs.concat(next.fn, services));
 
@@ -177,11 +178,12 @@ function runSyncBranch (index, currentBranch, options) {
     var action = currentBranch;
     var actionFunc = tree.actions[action.actionIndex];
     var actionArgs = createActionArgs(args, action, state, false);
+    var outputs = action.outputs ? Object.keys(action.outputs) : [];
 
     action.mutations = [];
     action.args = merge({}, args);
 
-    var next = createNextSyncAction(actionFunc);
+    var next = createNextSyncAction(actionFunc, outputs);
     actionFunc.apply(null, actionArgs.concat(next, services));
 
     var result = next._result || {};
@@ -219,31 +221,35 @@ function runSyncBranch (index, currentBranch, options) {
 
 /**
  * Add output paths to next function.
- * It's method allow define custom outputs for every action.
- * By default, allow 2 outputs: success and error.
- * You can define custom output this way:
  *
- * @example
- *  function action (args, state, output) {
-   *    output.custom();
-   *  }
+ * Outputs takes from branches tree object.
+ * @example:
+ *  var actions = [
+ *    syncAction,
+ *    [
+ *      asyncAction,
+ *      {
+ *        custom1: [custom1SyncAction],
+ *        custom2: [custom2SyncAction]
+ *      }
+ *    ]
+ *  ];
  *
- *  action.outputs = ['success', 'error', 'custom'];
+ *  function asyncAction ({}, state, output) {
+ *    if ( ... ) {
+ *      output.custom1();
+ *    } else {
+ *      output.custom2();
+ *    }
+ *  }
  *
- * @param {Function} action
  * @param {Function} next
+ * @param {Array} outputs
  * @returns {*}
  */
-function addOutputs (action, next) {
-  if (!action.outputs) {
-    next.success = next.bind(null, 'success');
-    next.error = next.bind(null, 'error');
-  } else if (Array.isArray(action.outputs)) {
-    action.outputs.forEach(key => {
-      next[key] = next.bind(null, key);
-    });
-  } else {
-    Object.keys(action.outputs).forEach(key => {
+function addOutputs (next, outputs) {
+  if (Array.isArray(outputs)) {
+    outputs.forEach(key => {
       next[key] = next.bind(null, key);
     });
   }
@@ -279,11 +285,12 @@ function createNextFunction (action, resolver) {
 /**
  * Create next sync action
  * @param {Function} actionFunc
+ * @param {Array} outputs
  * @returns {Function}
  */
-function createNextSyncAction (actionFunc) {
+function createNextSyncAction (actionFunc, outputs) {
   var next = createNextFunction(actionFunc);
-  next = addOutputs(actionFunc, next);
+  next = addOutputs(next, outputs);
 
   return next;
 }
@@ -291,13 +298,14 @@ function createNextSyncAction (actionFunc) {
 /**
  * Create next sync action
  * @param {Function} actionFunc
+ * @param {Array} outputs
  * @returns {{}}
  */
-function createNextAsyncAction (actionFunc) {
+function createNextAsyncAction (actionFunc, outputs) {
   var resolver = null;
   var promise = new Promise((resolve) => resolver = resolve);
   var fn = createNextFunction(actionFunc, resolver);
-  addOutputs(actionFunc, fn);
+  addOutputs(fn, outputs);
 
   return { fn, promise };
 }
