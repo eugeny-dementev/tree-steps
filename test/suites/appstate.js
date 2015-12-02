@@ -510,4 +510,38 @@ lab.experiment('#appstate', function () {
         done();
       });
   });
+
+  lab.test('should correct run tree with sync action that output to async', (done) => {
+    var counter = 0;
+
+    function async (args, state, output) {
+      setTimeout(() => {
+        counter += 1;
+        assert.equal(counter, 1);
+        output.success();
+      }, 0);
+    }
+
+    function sync (args, state, output) {
+      output.success();
+    }
+
+    var signal = appstate.create('test', [
+      sync, {
+        success: [
+          [
+            async, {
+              success: [noop]
+            }
+          ]
+        ]
+      }
+    ]);
+
+    signal(tree).then(function () {
+      counter += 1;
+      assert.equal(counter, 2);
+      done();
+    }).catch(done);
+  });
 });
