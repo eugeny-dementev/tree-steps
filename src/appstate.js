@@ -94,9 +94,9 @@ function runBranch (index, options) {
   }
 
   if (Array.isArray(currentBranch)) {
-    runAsyncBranch(index, currentBranch, options);
+    return runAsyncBranch(index, currentBranch, options);
   } else {
-    runSyncBranch(index, currentBranch, options);
+    return runSyncBranch(index, currentBranch, options);
   }
 }
 
@@ -206,7 +206,7 @@ function runSyncBranch (index, currentBranch, options) {
       });
 
       if (runResult && runResult.then) {
-        return result.then(() => {
+        return runResult.then(() => {
           return runBranch(index + 1, options);
         });
       }
