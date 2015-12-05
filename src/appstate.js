@@ -139,6 +139,7 @@ function runAsyncBranch (index, currentBranch, options) {
           merge(args, result.args);
 
           if (result.path) {
+            action.outputPath = result.path;
             var output = action.outputs[result.path];
 
             return runBranch(0, {
