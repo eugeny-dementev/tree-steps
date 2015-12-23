@@ -25,7 +25,7 @@ Create signal function. Accept `name` string and `actions` array.
    var signal = appstate.create('example', actions) // => Function
 ```
 
-### signal.run(state, args)
+### signal.run(state, services, args)
 
 Run signal function, return `Promise` with signal run results.
-Accept Baobab tree reference as `state` and `args` object.
+Accept Baobab tree reference as `state`, `services` and `args` object.
