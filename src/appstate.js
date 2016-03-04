@@ -509,6 +509,10 @@ function analyze (signalName, actions) {
 
     if (Array.isArray(action)) {
       analyze(signalName, action);
+    } else if (Object.prototype.toString.call(action) === "[object Object]") {
+      Object.keys(action).forEach(function (output) {
+        analyze(signalName, action[output]);
+      });
     }
   });
 }

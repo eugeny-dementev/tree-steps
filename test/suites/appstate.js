@@ -544,4 +544,50 @@ lab.experiment('#appstate', function () {
       done();
     }).catch(done);
   });
+
+  lab.test('should throw error if function defined in async action is miss', function(done) {
+    var asyncActionsGroup = {};
+
+    function async (args, state, output) {
+      setTimeout(() => {
+        output.success();
+    }, 0);
+    }
+
+    var actions = [
+      async, {
+        success: [
+          [
+            asyncActionsGroup.miss, {
+            success: [ noop ]
+          }
+          ]
+        ]
+      }
+    ];
+
+    assert.throws(appstate.create.bind(null, 'test', [actions]), Error);
+    done();
+  });
+
+  lab.test('should throw error if function defined in sync action is miss', function(done) {
+    var syncActionsGroup = {};
+
+    function sync (args, state, output) {
+      output.success();
+    }
+
+    var actions = [
+      sync, {
+        success: [
+          syncActionsGroup.miss, {
+            success: [ noop ]
+          }
+        ]
+      }
+    ];
+
+    assert.throws(appstate.create.bind(null, 'test', actions), Error);
+    done();
+  });
 });
