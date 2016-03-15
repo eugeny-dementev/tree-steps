@@ -1,6 +1,6 @@
 {
   "name": "appstate",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Barebone state manager implementation based on Cerebral signals conception",
   "main": "./dist/appstate.js",
   "devDependencies": {
