@@ -21,17 +21,14 @@ lab.experiment('#appstate', function () {
   });
 
   lab.test('should run signal with one sync action', function(done) {
-    var name = 'test';
-    var signal = appstate.create(name, [noop]);
+    var signal = appstate.create([noop]);
     signal(tree);
 
     done();
   });
 
   lab.test('should throw exception if signal defined incorrect', function(done) {
-    var name = 'test';
-    assert.throws(appstate.create.bind(null, name, [undefined]), Error);
-
+    assert.throws(appstate.create.bind(null, [undefined]), Error);
     done();
   });
 
@@ -40,8 +37,7 @@ lab.experiment('#appstate', function () {
       state.set('hello', args.hello);
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [sync]);
+    var signal = appstate.create([sync]);
 
     signal(tree, {}, { hello: 'world' });
     assert.equal(tree.get('hello'), 'world');
@@ -58,8 +54,7 @@ lab.experiment('#appstate', function () {
       state.set('hello', 'planet');
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [first, second]);
+    var signal = appstate.create([first, second]);
 
     signal(tree);
 
@@ -76,8 +71,7 @@ lab.experiment('#appstate', function () {
       done();
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [
+    var signal = appstate.create([
       [
         async, {
         success: [
@@ -100,8 +94,7 @@ lab.experiment('#appstate', function () {
       done();
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [
+    var signal = appstate.create([
       [
         async, {
           success: [
@@ -127,8 +120,7 @@ lab.experiment('#appstate', function () {
       done();
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [
+    var signal = appstate.create([
       [
         async, {
         success: [
@@ -150,8 +142,7 @@ lab.experiment('#appstate', function () {
       done();
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [sync, {
+    var signal = appstate.create([sync, {
       success: [ success ]
     }]);
 
@@ -168,8 +159,7 @@ lab.experiment('#appstate', function () {
       done();
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [sync, {
+    var signal = appstate.create([sync, {
       success: [ success ]
     }]);
 
@@ -217,8 +207,7 @@ lab.experiment('#appstate', function () {
       done();
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [
+    var signal = appstate.create([
       syncWithoutOutputFirst,
       syncWithOutput, {
         success: [
@@ -257,8 +246,7 @@ lab.experiment('#appstate', function () {
       done();
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [
+    var signal = appstate.create([
       sync,
       [
         async, {
@@ -287,8 +275,7 @@ lab.experiment('#appstate', function () {
       assert(args);
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [
+    var signal = appstate.create([
       [
         async, {
         success: [
@@ -336,8 +323,7 @@ lab.experiment('#appstate', function () {
       assert.equal(times, 1);
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [
+    var signal = appstate.create([
       [
         slow, {
         success: [
@@ -368,8 +354,7 @@ lab.experiment('#appstate', function () {
       done();
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [
+    var signal = appstate.create([
       sync, {
         success: [
           [ async, { success: [ success ]} ]
@@ -386,8 +371,7 @@ lab.experiment('#appstate', function () {
       done();
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [
+    var signal = appstate.create([
       sync
     ]);
 
@@ -399,8 +383,7 @@ lab.experiment('#appstate', function () {
       state.set('test', args.undefinedArg.deepArg);
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [syncWithError]);
+    var signal = appstate.create([syncWithError]);
 
     signal(tree)
       .catch((e) => {
@@ -415,8 +398,7 @@ lab.experiment('#appstate', function () {
       output.success();
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [
+    var signal = appstate.create([
       [
         asyncWithError, {
           success: [
@@ -442,8 +424,7 @@ lab.experiment('#appstate', function () {
       output.success();
     }
 
-    var name = 'test';
-    var signal = appstate.create(name, [
+    var signal = appstate.create([
       [
         async,
         {
@@ -466,7 +447,7 @@ lab.experiment('#appstate', function () {
       output.custom();
     }
 
-    var signal = appstate.create('test', [
+    var signal = appstate.create([
       [
         async, {
           custom: [() => done()]
@@ -482,7 +463,7 @@ lab.experiment('#appstate', function () {
       output.custom();
     }
 
-    var signal = appstate.create('test', [
+    var signal = appstate.create([
       sync, {
         custom: [() => done()]
       }
@@ -496,7 +477,7 @@ lab.experiment('#appstate', function () {
       output.success();
     }
 
-    var signal = appstate.create('test', [
+    var signal = appstate.create([
       [
         async, {
           custom: []
@@ -526,7 +507,7 @@ lab.experiment('#appstate', function () {
       output.success();
     }
 
-    var signal = appstate.create('test', [
+    var signal = appstate.create([
       sync, {
         success: [
           [
@@ -566,7 +547,7 @@ lab.experiment('#appstate', function () {
       }
     ];
 
-    assert.throws(appstate.create.bind(null, 'test', [actions]), Error);
+    assert.throws(appstate.create.bind(null, [actions]), Error);
     done();
   });
 
@@ -587,7 +568,7 @@ lab.experiment('#appstate', function () {
       }
     ];
 
-    assert.throws(appstate.create.bind(null, 'test', actions), Error);
+    assert.throws(appstate.create.bind(null, actions), Error);
     done();
   });
 });

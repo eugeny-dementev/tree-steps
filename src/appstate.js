@@ -16,8 +16,7 @@ module.exports = {
    *    ]
    *  ];
    *
-   *  var name = 'example';
-   *  var signal = appstate.create(name, actions);
+   *  var signal = appstate.create(actions);
    *  var tree = new Baobab;
    *
    *  // You can run signal as function that return Promise with results
@@ -27,25 +26,24 @@ module.exports = {
    * That have 3 args: signalArgs, state, output.
    * All args passed automatically when you run signal.
    *
-   * @param {String} name
    * @param {Array} actions
    * @return {Function}
    */
-  create (name, actions) {
-    analyze(name, actions);
+  create (actions) {
+    analyze(actions);
 
     return (state, services = {}, args = {}) => {
       return new Promise((resolve, reject) => {
         var promise = { resolve, reject };
         var start = Date.now();
 
-        checkArgs(args, name, promise);
+        checkArgs(args, promise);
         // Transform signal definition to flatten array
         var tree = staticTree(actions);
 
         // Create signal definition
         var signal = {
-          name, args,
+          args,
           branches: tree.branches,
           isExecuting: true,
           duration: 0
@@ -493,25 +491,24 @@ function transformSyncBranch (action, parentAction, path, actions, isSync) {
 
 /**
  * Analyze actions for errors
- * @param {String} signalName
  * @param {Array} actions
  */
-function analyze (signalName, actions) {
+function analyze (actions) {
   actions.forEach((action, index) => {
     if (typeof action === 'undefined' || typeof action === 'string') {
       throw new Error(
         `
-            State: Action number "${index}" in signal "${signalName}" does not exist.
+            State: Action number "${index}" in signal does not exist.
             Check that you have spelled it correctly!
           `
       );
     }
 
     if (Array.isArray(action)) {
-      analyze(signalName, action);
+      analyze(action);
     } else if (Object.prototype.toString.call(action) === "[object Object]") {
       Object.keys(action).forEach(function (output) {
-        analyze(signalName, action[output]);
+        analyze(action[output]);
       });
     }
   });
@@ -520,14 +517,13 @@ function analyze (signalName, actions) {
 /**
  * Check arguments
  * @param {*} args
- * @param {String} name
  * @param {Object} promise
  */
-function checkArgs (args, name, promise) {
+function checkArgs (args, promise) {
   try {
     JSON.stringify(args);
   } catch (e) {
-    promise.reject(`State - Could not serialize arguments to signal. Please check signal ${name}`);
+    promise.reject(`State - Could not serialize arguments to signal. Please check signal.`);
   }
 }
 

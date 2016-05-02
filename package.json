@@ -24,7 +24,7 @@
     "build": "gulp build && babel ./src --out-dir dist",
     "prepublish": "npm run build",
     "lint": "node ./node_modules/.bin/eslint ./src",
-    "test": "node ./node_modules/.bin/lab -T node_modules/babel-lab test/suites/*.js"
+    "test": "node ./node_modules/.bin/lab -T node_modules/babel-lab test/suites/*.js -l"
   },
   "repository": {
     "type": "git",
