@@ -4,7 +4,5 @@ node_modules
 .npmignore
 .travis.yml
 test/
-build/
-gulpfile.js
 *.log
 .eslintrc
