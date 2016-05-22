@@ -5,9 +5,9 @@ Appstate use [Baobab](https://github.com/Yomguithereal/baobab) as main state sto
 
 ## Usage
 
-### appstate.create(name, actions)
+### appstate.create(actions)
 
-Create signal function. Accept `name` string and `actions` array.
+Create signal function. Accept `actions` array.
 
 ### Example:
 
@@ -22,7 +22,7 @@ Create signal function. Accept `name` string and `actions` array.
      ]
    ];
    
-   var signal = appstate.create('example', actions) // => Function
+   var signal = appstate.create(actions) // => Function
 ```
 
 ### signal(state, services, args)
