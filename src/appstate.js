@@ -32,7 +32,7 @@ module.exports = {
   create (actions) {
     analyze(actions);
 
-    return (state, services = {}, args = {}) => {
+    return (state, services = {}, args = {}, history) => {
       return new Promise((resolve, reject) => {
         var promise = { resolve, reject };
         var start = Date.now();
@@ -43,7 +43,7 @@ module.exports = {
 
         // Create signal definition
         var signal = {
-          args,
+          args, history,
           branches: tree.branches,
           isExecuting: true,
           duration: 0
@@ -124,9 +124,27 @@ function runAsyncBranch (index, currentBranch, options) {
       action.isExecuting = true;
       action.args = merge({}, args);
 
-      var next = createNextAsyncAction(actionFunc, outputs);
+      var next;
 
-      actionFunc.apply(null, actionArgs.concat(next.fn, services));
+      // If history provided, emulate action run,
+      // by passing to next action with found path and args
+      if (signal.history) {
+        var cachedAction = signal.history;
+
+        action.path.forEach((branchId) => {
+          cachedAction = cachedAction[branchId];
+        });
+
+        next = Object.create(null);
+
+        next.promise = Promise.resolve({
+          path: cachedAction.outputPath,
+          args: cachedAction.output
+        });
+      } else {
+        next = createNextAsyncAction(actionFunc, outputs);
+        actionFunc.apply(null, actionArgs.concat(next.fn, services));
+      }
 
       return next.promise
         .then(result => {
@@ -494,6 +512,8 @@ function transformSyncBranch (action, parentAction, path, actions, isSync) {
  * @param {Array} actions
  */
 function analyze (actions) {
+
+
   actions.forEach((action, index) => {
     if (typeof action === 'undefined' || typeof action === 'string') {
       throw new Error(
