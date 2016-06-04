@@ -526,7 +526,7 @@ lab.experiment('#appstate', function () {
     }).catch(done);
   });
 
-  lab.test('should throw error if function defined in async action is miss', function(done) {
+  lab.test('should throw error if function defined in async action is miss', (done) => {
     var asyncActionsGroup = {};
 
     function async (args, state, output) {
@@ -551,7 +551,7 @@ lab.experiment('#appstate', function () {
     done();
   });
 
-  lab.test('should throw error if function defined in sync action is miss', function(done) {
+  lab.test('should throw error if function defined in sync action is miss', (done) => {
     var syncActionsGroup = {};
 
     function sync (args, state, output) {
@@ -570,5 +570,61 @@ lab.experiment('#appstate', function () {
 
     assert.throws(appstate.create.bind(null, actions), Error);
     done();
+  });
+
+  lab.test('should use history in async actions if it passed', (done) => {
+    var counter1 = 0;
+    var counter2 = 0;
+    var outputTimes1 = 0;
+    var outputTimes2 = 0;
+
+    function async (args, state, output) {
+      counter1 += 1;
+      output.success({ test: 'test' });
+    }
+
+    function sync (args) {
+      assert(args.test);
+      outputTimes1 += 1;
+    }
+
+    function async2 (args, state, output) {
+      counter2 += 1;
+      output.success({ test2: 'test' });
+    }
+
+    function sync2 (args) {
+      assert(args.test2);
+      outputTimes2 += 1;
+    }
+
+    var signal = appstate.create([
+      [
+        async, {
+          success: [
+            sync
+          ]
+        },
+        async2, {
+          success: [
+            sync2
+          ]
+        }
+      ]
+    ]);
+
+    signal(tree)
+      .then((result) => {
+        return signal(tree, {}, {}, result.branches);
+      })
+      .then(() => {
+        assert.equal(counter1, 1);
+        assert.equal(counter2, 1);
+        assert.equal(outputTimes1, 2);
+        assert.equal(outputTimes2, 2);
+
+        done();
+      })
+      .catch(done);
   });
 });
