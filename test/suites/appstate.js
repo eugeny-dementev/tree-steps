@@ -615,7 +615,7 @@ lab.experiment('#appstate', function () {
 
     signal(tree)
       .then((result) => {
-        return signal(tree, {}, {}, result.branches);
+        return signal(tree, {}, {}, result.asyncActionResults);
       })
       .then(() => {
         assert.equal(counter1, 1);
