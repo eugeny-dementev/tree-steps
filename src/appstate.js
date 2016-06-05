@@ -17,13 +17,12 @@ module.exports = {
    *  ];
    *
    *  var signal = appstate.create(actions);
-   *  var tree = new Baobab;
+   *  var tree = new Baobab();
    *
    *  // You can run signal as function that return Promise with results
    *  signal(tree);
    *
-   * Every function in this example is pure.
-   * That have 3 args: signalArgs, state, output.
+   * That have 4 args: signalArgs, state, output, services.
    * All args passed automatically when you run signal.
    *
    * @param {Array} actions
@@ -32,7 +31,7 @@ module.exports = {
   create (actions) {
     analyze(actions);
 
-    return (state, services = {}, args = {}, history) => {
+    return (state, services = {}, args = {}, asyncActionResults = []) => {
       return new Promise((resolve, reject) => {
         var promise = { resolve, reject };
         var start = Date.now();
@@ -43,7 +42,8 @@ module.exports = {
 
         // Create signal definition
         var signal = {
-          args, history,
+          args,
+          asyncActionResults,
           branches: tree.branches,
           isExecuting: true,
           duration: 0
@@ -124,33 +124,30 @@ function runAsyncBranch (index, currentBranch, options) {
       action.isExecuting = true;
       action.args = merge({}, args);
 
-      var next;
+      var nextActionPromise;
+      var foundResult = signal.asyncActionResults.find((result) => isEqualArrays(result.outputPath, action.path));
 
-      // If history provided, emulate action run,
-      // by passing to next action with found path and args
-      if (signal.history) {
-        var cachedAction = signal.history;
-
-        action.path.forEach((branchId) => {
-          cachedAction = cachedAction[branchId];
-        });
-
-        next = Object.create(null);
-
-        next.promise = Promise.resolve({
-          path: cachedAction.outputPath,
-          args: cachedAction.output
-        });
+      // If actions results provided, you run it in replay mode
+      if (foundResult) {
+        nextActionPromise = Promise.resolve(foundResult);
       } else {
-        next = createNextAsyncAction(actionFunc, outputs);
+        var next = createNextAsyncAction(actionFunc, outputs);
         actionFunc.apply(null, actionArgs.concat(next.fn, services));
+        nextActionPromise = next.promise;
       }
 
-      return next.promise
+      return nextActionPromise
         .then(result => {
           action.hasExecuted = true;
           action.isExecuting = false;
           action.output = result.args;
+
+          // Save short results snippet for replay
+          signal.asyncActionResults.push({
+            outputPath: action.path,
+            path: result.path,
+            args: result.args
+          });
 
           merge(args, result.args);
 
@@ -571,4 +568,18 @@ function merge (target, source) {
     targetKey[key] = source[key];
     return target;
   }, target);
+}
+
+function isEqualArrays (first, second) {
+  if (!Array.isArray(first) || !Array.isArray(second)) {
+    return false;
+  }
+
+  if (first.length !== second.length) {
+    return false;
+  }
+
+  return first.every(function(element, index) {
+    return element === second[index];
+  });
 }
