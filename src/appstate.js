@@ -509,7 +509,9 @@ function transformSyncBranch (action, parentAction, path, actions, isSync) {
  * @param {Array} actions
  */
 function analyze (actions) {
-
+  if (!Array.isArray(actions)) {
+    throw new Error('State: Signal actions should be array');
+  }
 
   actions.forEach((action, index) => {
     if (typeof action === 'undefined' || typeof action === 'string') {
