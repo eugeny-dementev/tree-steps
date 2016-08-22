@@ -542,7 +542,7 @@ function checkArgs (args, promise) {
   try {
     JSON.stringify(args);
   } catch (e) {
-    promise.reject(`State - Could not serialize arguments to signal. Please check signal.`);
+    promise.reject(`State - Could not serialize arguments to signal. ${e}`);
   }
 }
 
