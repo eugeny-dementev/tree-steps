@@ -1,8 +1,20 @@
 var Lab = require('lab');
 var lab = exports.lab = Lab.script();
 var assert = require('assert');
-var Baobab = require('baobab');
+var { createStore } = require('redux');
 var appstate = require('../../src/appstate');
+
+function reducer (state = {}, action) {
+  switch (action.type) {
+    case 'SET_PROPERTY': {
+      return Object.assign({}, state, {
+        [action.name]: action.value,
+      });
+    }
+    default:
+      return state;
+  }
+}
 
 /**
  * Test helpers
@@ -13,16 +25,16 @@ function noop () {}
  * Cases
  */
 lab.experiment('#appstate', function () {
-  var tree;
+  var store;
 
   lab.beforeEach(function(done) {
-    tree = new Baobab();
+    store = createStore(reducer);
     done();
   });
 
   lab.test('should run signal with one sync action', function(done) {
     var signal = appstate.create([noop]);
-    signal(tree);
+    signal(store);
 
     done();
   });
@@ -32,38 +44,50 @@ lab.experiment('#appstate', function () {
     done();
   });
 
-  lab.test('should run signal with one sync action and modify state', function(done) {
-    function sync (args, state) {
-      state.set('hello', args.hello);
+  lab.test('should run signal with one sync action, dispatch redux action and modify store', function(done) {
+    function sync ({ args, dispatch }) {
+      dispatch({
+        type: 'SET_PROPERTY',
+        name: 'hello',
+        value: args.hello,
+      });
     }
 
     var signal = appstate.create([sync]);
 
-    signal(tree, {}, { hello: 'world' });
-    assert.equal(tree.get('hello'), 'world');
+    signal(store, {}, { hello: 'world' });
+    assert.equal(store.getState().hello, 'world');
 
     done();
   });
 
-  lab.test('should run signal with two sync action and modify state', function(done) {
-    function first (args, state) {
-      state.set('hello', 'world');
+  lab.test('should run signal with two sync action and modify store', function(done) {
+    function first ({ args, dispatch }) {
+      dispatch({
+        type: 'SET_PROPERTY',
+        name: 'hello',
+        value: 'world',
+      });
     }
 
-    function second (args, state) {
-      state.set('hello', 'planet');
+    function second ({ args, dispatch }) {
+      dispatch({
+        type: 'SET_PROPERTY',
+        name: 'hello',
+        value: 'planet',
+      });
     }
 
     var signal = appstate.create([first, second]);
 
-    signal(tree);
+    signal(store);
 
-    assert.equal(tree.get('hello'), 'planet');
+    assert.equal(store.getState().hello, 'planet');
     done();
   });
 
   lab.test('should run signal with one async action and output to success', function (done) {
-    function async (args, state, output) {
+    function async ({ output }) {
       output.success();
     }
 
@@ -74,22 +98,22 @@ lab.experiment('#appstate', function () {
     var signal = appstate.create([
       [
         async, {
-        success: [
-          success
-        ]
-      }
+          success: [
+            success
+          ]
+        }
       ]
     ]);
 
-    signal(tree);
+    signal(store);
   });
 
   lab.test('should pass async acton output args to next actions', function (done) {
-    function async (args, state, output) {
+    function async ({ output }) {
       output.success({ test: 'test' });
     }
 
-    function success (args) {
+    function success ({ args }) {
       assert(args.test);
       done();
     }
@@ -104,19 +128,21 @@ lab.experiment('#appstate', function () {
       ]
     ]);
 
-    signal(tree);
+    signal(store);
   });
 
-  lab.test('should not contains mutators if action is async', function (done) {
-    function async (args, state, output) {
-      assert(!state.set);
-      assert(state.get);
+  lab.test('should not contains dispatch if action is async', function (done) {
+    function async ({ dispatch, getState, output }) {
+      assert(!dispatch);
+      assert(getState);
+
       output.success();
     }
 
-    function success (args, state) {
-      assert(state.set);
-      assert(state.get);
+    function success ({ dispatch, getState }) {
+      assert(dispatch);
+      assert(getState);
+
       done();
     }
 
@@ -130,11 +156,11 @@ lab.experiment('#appstate', function () {
       ]
     ]);
 
-    signal(tree);
+    signal(store);
   });
 
   lab.test('should can output to different ways from sync action', function (done) {
-    function sync (args, state, output) {
+    function sync ({ output }) {
       output.success();
     }
 
@@ -142,28 +168,37 @@ lab.experiment('#appstate', function () {
       done();
     }
 
-    var signal = appstate.create([sync, {
-      success: [ success ]
-    }]);
+    var signal = appstate.create([
+      sync, {
+        success: [
+          success
+        ]
+      }
+    ]);
 
-    signal(tree);
+    signal(store);
   });
 
   lab.test('should pass arguments to outputs if action is sync', function (done) {
-    function sync (args, state, output) {
+    function sync ({ output }) {
       output.success({ test: 'test' });
     }
 
-    function success (args) {
+    function success ({ args }) {
       assert(args.test);
+
       done();
     }
 
-    var signal = appstate.create([sync, {
-      success: [ success ]
-    }]);
+    var signal = appstate.create([
+      sync, {
+        success: [
+          success
+        ]
+      }
+    ]);
 
-    signal(tree);
+    signal(store);
   });
 
   lab.test('should correct run chain of sync and async actions', function (done) {
@@ -179,13 +214,13 @@ lab.experiment('#appstate', function () {
       assert.equal(times, 4);
     }
 
-    function syncWithOutput (args, state, output) {
+    function syncWithOutput ({ output }) {
       times += 1;
       assert.equal(times, 2);
       output.success();
     }
 
-    function async (args, state, output) {
+    function async ({ output }) {
       times += 1;
       assert.equal(times, 5);
       output.success();
@@ -225,21 +260,21 @@ lab.experiment('#appstate', function () {
       syncFinal
     ]);
 
-    signal(tree);
+    signal(store);
   });
 
   lab.test('must pass and extend args thru all actions', function (done) {
-    function async (args, state, output) {
+    function async ({ args, output }) {
       assert(args.sync);
       output.success({ async: 'async' });
     }
 
-    function sync (args, state, output) {
+    function sync ({ args, output }) {
       assert(args.test);
       output({ sync: 'sync'});
     }
 
-    function success (args) {
+    function success ({ args }) {
       assert(args.async);
       assert(args.test);
       assert(args.sync);
@@ -255,15 +290,15 @@ lab.experiment('#appstate', function () {
       ]
     ]);
 
-    signal(tree, {}, { test: 'test' });
+    signal(store, {}, { test: 'test' });
   });
 
   lab.test('Deep async actions must run correctly', function (done) {
-    function async (args, state, output) {
+    function async ({ output }) {
       output.success();
     }
 
-    function sync (args, state, output) {
+    function sync ({ output }) {
       output.success();
     }
 
@@ -271,42 +306,44 @@ lab.experiment('#appstate', function () {
       done();
     }
 
-    function successSync (args) {
+    function successSync ({ args }) {
       assert(args);
     }
 
     var signal = appstate.create([
       [
         async, {
-        success: [
-          sync, {
-            success: [
-              successSync
+          success: [
+            sync, {
+              success: [
+                successSync
+              ]
+            },
+            [
+              async, {
+                success: [
+                  success
+                ]
+              }
             ]
-          },
-          [async, {
-            success: [
-              success
-            ]
-          }]
-        ]
-      }
+          ]
+        }
       ]
     ]);
 
-    signal(tree);
+    signal(store);
   });
 
   lab.test('Should run output actions when ready parent action in async concurrence run', function (done) {
     var times = 0;
 
-    function slow (args, state, output) {
+    function slow ({ output }) {
       setTimeout(function () {
         output.success();
       }, 10);
     }
 
-    function fast (args, state, output) {
+    function fast ({ output }) {
       setTimeout(function () {
         output.success();
       }, 0);
@@ -326,27 +363,27 @@ lab.experiment('#appstate', function () {
     var signal = appstate.create([
       [
         slow, {
-        success: [
-          slowSuccess
-        ]
-      },
+          success: [
+            slowSuccess
+          ]
+        },
         fast, {
-        success: [
-          fastSuccess
-        ]
-      }
+          success: [
+            fastSuccess
+          ]
+        }
       ]
     ]);
 
-    signal(tree);
+    signal(store);
   });
 
   lab.test('should can output from sync to async action', function (done) {
-    function sync (args, state, output) {
+    function sync ({ output }) {
       output.success();
     }
 
-    function async (args, state, output) {
+    function async ({ output }) {
       output.success();
     }
 
@@ -357,16 +394,22 @@ lab.experiment('#appstate', function () {
     var signal = appstate.create([
       sync, {
         success: [
-          [ async, { success: [ success ]} ]
+          [
+            async, {
+              success: [
+                success
+              ]
+            }
+          ]
         ]
       }
     ]);
 
-    signal(tree);
+    signal(store);
   });
 
   lab.test('should can pass services as 4 arg', function (done) {
-    function sync (args, state, output, services) {
+    function sync ({ services }) {
       assert(services.test);
       done();
     }
@@ -375,17 +418,23 @@ lab.experiment('#appstate', function () {
       sync
     ]);
 
-    signal(tree, { test: 'test' });
+    signal(store, { test: 'test' });
   });
 
   lab.test('should reject signal promise if error in sync action', function(done) {
-    function syncWithError (args, state) {
-      state.set('test', args.undefinedArg.deepArg);
+    function syncWithError ({ args, dispatch }) {
+      dispatch({
+        type: 'SET_PROPERTY',
+        name: 'test',
+        value: args.undefinedArg.deepArg
+      });
     }
 
-    var signal = appstate.create([syncWithError]);
+    var signal = appstate.create([
+      syncWithError
+    ]);
 
-    signal(tree)
+    signal(store)
       .catch((e) => {
         assert(e instanceof Error);
         done();
@@ -393,8 +442,9 @@ lab.experiment('#appstate', function () {
   });
 
   lab.test('should reject signal promise if error in async action', function(done) {
-    function asyncWithError (args, state, output) {
-      state.set('test', args.undefinedArg.deepArg);
+    function asyncWithError ({ getState }) {
+      getState().undefinedArg.deepArg;
+
       output.success();
     }
 
@@ -408,7 +458,7 @@ lab.experiment('#appstate', function () {
       ]
     ]);
 
-    signal(tree)
+    signal(store)
       .catch((e) => {
         assert(e instanceof Error);
         done();
@@ -416,11 +466,11 @@ lab.experiment('#appstate', function () {
   });
 
   lab.test('should reject signal promise if error in async output action', function(done) {
-    function syncWithError (args, state) {
-      state.set('test', args.undefinedArg.deepArg);
+    function syncWithError ({ getState }) {
+      getState().undefinedArg.deepArg;
     }
 
-    function async (args, state, output) {
+    function async ({ output }) {
       output.success();
     }
 
@@ -435,7 +485,7 @@ lab.experiment('#appstate', function () {
       ]
     ]);
 
-    signal(tree)
+    signal(store)
       .catch((e) => {
         assert(e instanceof Error);
         done();
@@ -443,7 +493,7 @@ lab.experiment('#appstate', function () {
   });
 
   lab.test('should autobind outputs on async action', (done) => {
-    function async ({}, state, output) {
+    function async ({ output }) {
       output.custom();
     }
 
@@ -455,11 +505,11 @@ lab.experiment('#appstate', function () {
       ]
     ]);
 
-    signal(tree);
+    signal(store);
   });
 
   lab.test('should autobind outputs on sync action', (done) => {
-    function sync ({}, state, output) {
+    function sync ({ output }) {
       output.custom();
     }
 
@@ -469,11 +519,11 @@ lab.experiment('#appstate', function () {
       }
     ]);
 
-    signal(tree);
+    signal(store);
   });
 
   lab.test('should throw error, if no executed output in async actions', (done) => {
-    function async ({}, state, output) {
+    function async ({ output }) {
       output.success();
     }
 
@@ -485,7 +535,7 @@ lab.experiment('#appstate', function () {
       ]
     ]);
 
-    signal(tree)
+    signal(store)
       .catch((e) => {
         assert(e instanceof Error);
         done();
@@ -495,7 +545,7 @@ lab.experiment('#appstate', function () {
   lab.test('should correct run tree with sync action that output to async', (done) => {
     var counter = 0;
 
-    function async (args, state, output) {
+    function async ({ output }) {
       setTimeout(() => {
         counter += 1;
         assert.equal(counter, 1);
@@ -503,7 +553,7 @@ lab.experiment('#appstate', function () {
       }, 0);
     }
 
-    function sync (args, state, output) {
+    function sync ({ output }) {
       output.success();
     }
 
@@ -519,7 +569,7 @@ lab.experiment('#appstate', function () {
       }
     ]);
 
-    signal(tree).then(function () {
+    signal(store).then(function () {
       counter += 1;
       assert.equal(counter, 2);
       done();
@@ -529,10 +579,10 @@ lab.experiment('#appstate', function () {
   lab.test('should throw error if function defined in async action is miss', (done) => {
     var asyncActionsGroup = {};
 
-    function async (args, state, output) {
+    function async ({ output }) {
       setTimeout(() => {
         output.success();
-    }, 0);
+      }, 0);
     }
 
     var actions = [
@@ -554,7 +604,7 @@ lab.experiment('#appstate', function () {
   lab.test('should throw error if function defined in sync action is miss', (done) => {
     var syncActionsGroup = {};
 
-    function sync (args, state, output) {
+    function sync ({ output }) {
       output.success();
     }
 
@@ -578,22 +628,22 @@ lab.experiment('#appstate', function () {
     var outputTimes1 = 0;
     var outputTimes2 = 0;
 
-    function async (args, state, output) {
+    function async ({ output }) {
       counter1 += 1;
       output.success({ test: 'test' });
     }
 
-    function sync (args) {
+    function sync ({ args }) {
       assert(args.test);
       outputTimes1 += 1;
     }
 
-    function async2 (args, state, output) {
+    function async2 ({ output }) {
       counter2 += 1;
       output.success({ test2: 'test' });
     }
 
-    function sync2 (args) {
+    function sync2 ({ args }) {
       assert(args.test2);
       outputTimes2 += 1;
     }
@@ -613,9 +663,9 @@ lab.experiment('#appstate', function () {
       ]
     ]);
 
-    signal(tree)
+    signal(store)
       .then((result) => {
-        return signal(tree, {}, {}, result.asyncActionResults);
+        return signal(store, {}, {}, result.asyncActionResults);
       })
       .then(() => {
         assert.equal(counter1, 1);

@@ -1,7 +1,7 @@
-# AppState [![Build Status](https://travis-ci.org/catbee/appstate.svg)](https://travis-ci.org/markuplab/appstate)
+# AppState
 
 __Appstate__ is a Javascript state manager, based on [Cerebral](https://github.com/christianalfoni/cerebral) signals conception.
-Appstate use [Baobab](https://github.com/Yomguithereal/baobab) as main state storage.
+Appstate use [Redux](https://github.com/react/redux) as main state storage.
 
 ## Usage
 
@@ -25,7 +25,7 @@ Create signal function. Accept `actions` array.
    var signal = appstate.create(actions) // => Function
 ```
 
-### signal(state, services, args)
+### signal(store, services, args)
 
 Run signal function, return `Promise` with signal run results.
-Accept Baobab tree reference as `state`, `services` and `args` object.
+Accept Redux store reference as `store`, `services` and `args` object.
