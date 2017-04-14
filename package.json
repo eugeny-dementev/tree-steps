@@ -1,12 +1,12 @@
 {
-  "name": "appstate",
-  "version": "2.1.2",
-  "description": "Barebone state manager implementation based on Cerebral signals conception",
+  "name": "react-redux-action-tree",
+  "version": "0.0.1",
+  "description": "Barebone state manager implementation based on Cerebral action-tree and Catbee appstate",
   "main": "./src/appstate.js",
   "devDependencies": {
-    "baobab": "^2.1.0",
-    "eslint": "^1.1.0",
-    "lab": "^7.2.0"
+    "eslint": "^3.19.0",
+    "lab": "^13.0.2",
+    "redux": "^3.6.0"
   },
   "scripts": {
     "lint": "eslint ./src",
@@ -14,21 +14,22 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/catbee/appstate.git"
+    "url": "https://github.com/eugeny-dementev/reduxed-action-tree.git"
   },
   "keywords": [
     "state",
-    "manager",
-    "baobab",
+    "redux",
+    "action",
+    "tree",
     "middleware"
   ],
   "author": {
-    "name": "Kirill Kaysarov",
-    "url": "http://github.com/markuplab"
+    "name": "Eugeny Dementev",
+    "url": "http://github.com/eugeny-dementev"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/catbee/appstate/issues"
+    "url": "https://github.com/eugeny-dementev/reduxed-action-tree/issues"
   },
-  "homepage": "https://github.com/catbee/appstate"
+  "homepage": "https://github.com/eugeny-dementev/reduxed-action-tree"
 }

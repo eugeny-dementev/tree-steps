@@ -16,13 +16,13 @@ module.exports = {
    *    ]
    *  ];
    *
-   *  var signal = appstate.create(actions);
-   *  var tree = new Baobab();
+   *  const signal = appstate.create(actions);
+   *  const store = createReduxStore(reducer);
    *
    *  // You can run signal as function that return Promise with results
-   *  signal(tree);
+   *  signal(store);
    *
-   * That have 4 args: signalArgs, state, output, services.
+   * That have 1 args with properties: signalArgs, getState, output, dispatch, services.
    * All args passed automatically when you run signal.
    *
    * @param {Array} actions
@@ -31,7 +31,7 @@ module.exports = {
   create (actions) {
     analyze(actions);
 
-    return (state, services = {}, args = {}, asyncActionResults = []) => {
+    return (store, services = {}, args = {}, asyncActionResults = []) => {
       return new Promise((resolve, reject) => {
         var promise = { resolve, reject };
         var start = Date.now();
@@ -50,7 +50,7 @@ module.exports = {
         };
 
         // Start recursive run tree branches
-        runBranch(0, { tree, args, signal, promise, start, state, services });
+        runBranch(0, { tree, args, signal, promise, start, store, services });
       });
     };
   }
@@ -66,7 +66,7 @@ module.exports = {
  * @param {Object} options.signal
  * @param {Object} options.promise
  * @param {Date}   options.start
- * @param {Baobab} options.state
+ * @param {Redux} options.store
  * @param {Object} options.services
  */
 function runBranch (index, options) {
@@ -108,17 +108,17 @@ function runBranch (index, options) {
  * @param {Object} options.signal
  * @param {Object} options.promise
  * @param {Date}   options.start
- * @param {Baobab} options.state
+ * @param {Redux} options.store
  * @param {Object} options.services
  * @returns {Promise}
  */
 function runAsyncBranch (index, currentBranch, options) {
-  var { tree, args, signal, state, promise, start, services } = options;
+  var { tree, args, signal, store, promise, start, services } = options;
 
   var promises = currentBranch
     .map(action => {
       var actionFunc = tree.actions[action.actionIndex];
-      var actionArgs = createActionArgs(args, action, state, true);
+      var actionArgs = createActionArgs(args, store, true);
       var outputs = action.outputs ? Object.keys(action.outputs) : [];
 
       action.isExecuting = true;
@@ -132,7 +132,10 @@ function runAsyncBranch (index, currentBranch, options) {
         nextActionPromise = Promise.resolve(foundResult);
       } else {
         var next = createNextAsyncAction(actionFunc, outputs);
-        actionFunc.apply(null, actionArgs.concat(next.fn, services));
+        actionFunc(Object.assign({}, actionArgs, {
+          output: next.fn,
+          services,
+        }));
         nextActionPromise = next.promise;
       }
 
@@ -156,7 +159,7 @@ function runAsyncBranch (index, currentBranch, options) {
             var output = action.outputs[result.path];
 
             return runBranch(0, {
-              args, signal, state, start, promise, services,
+              args, signal, store, start, promise, services,
               tree: {
                 actions: tree.actions,
                 branches: output
@@ -181,24 +184,26 @@ function runAsyncBranch (index, currentBranch, options) {
  * @param {Object} options.signal
  * @param {Object} options.promise
  * @param {Date}   options.start
- * @param {Baobab} options.state
+ * @param {Redux} options.store
  * @param {Object} options.services
  * @returns {Promise|undefined}
  */
 function runSyncBranch (index, currentBranch, options) {
-  var { args, tree, signal, state, start, promise, services } = options;
+  var { args, tree, signal, store, start, promise, services } = options;
 
   try {
     var action = currentBranch;
     var actionFunc = tree.actions[action.actionIndex];
-    var actionArgs = createActionArgs(args, action, state, false);
+    var actionArgs = createActionArgs(args, store, false);
     var outputs = action.outputs ? Object.keys(action.outputs) : [];
 
-    action.mutations = [];
     action.args = merge({}, args);
 
     var next = createNextSyncAction(actionFunc, outputs);
-    actionFunc.apply(null, actionArgs.concat(next, services));
+    actionFunc(Object.assign({}, actionArgs, {
+      output: next,
+      services,
+    }));
 
     var result = next._result || {};
     merge(args, result.args);
@@ -212,7 +217,7 @@ function runSyncBranch (index, currentBranch, options) {
       var output = action.outputs[result.path];
 
       var runResult = runBranch(0, {
-        args, signal, state, start, promise, services,
+        args, signal, store, start, promise, services,
         tree: {
           actions: tree.actions,
           branches: output
@@ -249,7 +254,7 @@ function runSyncBranch (index, currentBranch, options) {
  *    ]
  *  ];
  *
- *  function asyncAction ({}, state, output) {
+ *  function asyncAction ({}, store, output) {
  *    if ( ... ) {
  *      output.custom1();
  *    } else {
@@ -327,83 +332,46 @@ function createNextAsyncAction (actionFunc, outputs) {
 /**
  * Create action arguments for every action.
  * State object exposed as special patched collection of
- * mutation/accessors functions of Baobab Tree.
+ * mutation/accessors functions of Redux store.
  * @param {*} args
  * @param {Object} action
- * @param {Object} state
+ * @param {Object} store
  * @param {Boolean} isAsync
  * @returns {Array}
  */
-function createActionArgs (args, action, state, isAsync) {
-  var stateMethods = getStateMutatorsAndAccessors(state, action, isAsync);
-  return [ args, stateMethods ];
+function createActionArgs (args, store, isAsync) {
+  return Object
+    .assign(
+      { args },
+      getStateMethods(store, isAsync)
+    );
 }
 
 /**
- * Get state mutators and accessors
+ * Get store mutators and accessors
  * Each mutation will save in action descriptor.
  * This method allow add ability
  * to gather information about call every function.
- * @param {Object} state
+ * @param {Object} store
  * @param {Object} action
  * @param {Boolean} isAsync
  * @return {Object}
  */
-function getStateMutatorsAndAccessors (state, action, isAsync) {
-  var mutators = [
-    'apply',
-    'concat',
-    'deepMerge',
-    'push',
-    'merge',
-    'unset',
-    'set',
-    'splice',
-    'unshift'
-  ];
-
-  var accessors = [
-    'get',
-    'exists'
-  ];
-
-  var methods = [];
+function getStateMethods (store, isAsync) {
+  let methods = null;
 
   if (isAsync) {
-    methods = methods.concat(accessors);
+    methods = {
+      getState: store.getState,
+    };
   } else {
-    methods = methods.concat(mutators);
-    methods = methods.concat(accessors);
+    methods = {
+      getState: store.getState,
+      dispatch: store.dispatch,
+    };
   }
 
-  return methods.reduce((stateMethods, methodName) => {
-    var method = state[methodName].bind(state);
-
-    stateMethods[methodName] = (...args) => {
-      var path = [];
-      var firstArg = args[0];
-
-      if (Array.isArray(firstArg)) {
-        path = args.shift();
-      } else if (typeof firstArg === 'string') {
-        path = [args.shift()];
-      }
-
-      if (args.length === 0) {
-        return method.apply(null, [path.slice()]);
-      }
-
-      action.mutations.push({
-        name: methodName,
-        path: path.slice(),
-        args: args
-      });
-
-      return method.apply(null, [path.slice()].concat(args));
-    };
-
-    return stateMethods;
-  }, Object.create(null));
+  return methods;
 }
 
 /**
@@ -466,7 +434,6 @@ function transformAsyncBranch (action, parentAction, path, actions, isSync) {
  * @param {Boolean} isSync
  * @returns {{
  *    name: *, args: {}, output: null, duration: number,
- *    mutations: Array, isAsync: boolean, outputPath: null,
  *    isExecuting: boolean, hasExecuted: boolean,
  *    path: *, outputs: null, actionIndex: number
  *  }|undefined}
@@ -477,7 +444,6 @@ function transformSyncBranch (action, parentAction, path, actions, isSync) {
     args: {},
     output: null,
     duration: 0,
-    mutations: [],
     isAsync: !isSync,
     outputPath: null,
     isExecuting: false,
