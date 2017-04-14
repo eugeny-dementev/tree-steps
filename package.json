@@ -1,5 +1,5 @@
 {
-  "name": "react-redux-action-tree",
+  "name": "reduxed-action-tree",
   "version": "1.0.0",
   "description": "Barebone state manager implementation based on Cerebral action-tree and Catbee appstate",
   "main": "./src/appstate.js",
