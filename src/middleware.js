@@ -16,8 +16,8 @@ module.exports = function configureMiddleware (params = {}) {
       const signalRunner = appstate.create(signal);
 
       signalRunner(store, services, args)
-        .then((result) => logSuccess(result))
-        .catch((err) => logError(err));
+        .then(logSuccess)
+        .catch(logError);
     };
   };
 }
