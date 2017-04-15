@@ -4,6 +4,7 @@ module.exports = function configureMiddleware (params = {}) {
   const {
     services = {},
     logError = console.error,
+    logSuccess = () => {},
   } = params;
 
   return function middleware (store) {
@@ -15,6 +16,7 @@ module.exports = function configureMiddleware (params = {}) {
       const signal = appstate.create(signal);
 
       signal(store, services, args)
+        .then((result) => logSuccess(result))
         .catch((err) => logError(err));
     };
   };
