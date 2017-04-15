@@ -2,7 +2,7 @@
   "name": "reduxed-action-tree",
   "version": "1.0.0",
   "description": "Barebone state manager implementation based on Cerebral action-tree and Catbee appstate",
-  "main": "./src/appstate.js",
+  "main": "./src/middleware.js",
   "devDependencies": {
     "eslint": "^3.19.0",
     "lab": "^13.0.2",
