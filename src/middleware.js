@@ -8,14 +8,14 @@ module.exports = function configureMiddleware (params = {}) {
   } = params;
 
   return function middleware (store) {
-    return (next) => function actionApplier (signal, args, ...rest) {
-      if (!Array.isArray(signal)) {
-        return next(signal, args, ...rest);
+    return (next) => function actionApplier (actions, args, ...rest) {
+      if (!Array.isArray(actions)) {
+        return next(actions, args, ...rest);
       }
 
-      const signalRunner = appstate.create(signal);
+      const signal = appstate.create(actions);
 
-      signalRunner(store, services, args)
+      signal(store, services, args)
         .then(logSuccess)
         .catch(logError);
     };
