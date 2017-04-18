@@ -370,7 +370,7 @@ function createNextAsyncAction(actionFunc, outputs) {
  * @returns {Array}
  */
 function createActionArgs(args, store, isAsync) {
-  return Object.assign({ args: args }, getStateMethods(store, isAsync));
+  return Object.assign({ args: args }, getStoreMethods(store, isAsync));
 }
 
 /**
@@ -383,7 +383,7 @@ function createActionArgs(args, store, isAsync) {
  * @param {Boolean} isAsync
  * @return {Object}
  */
-function getStateMethods(store, isAsync) {
+function getStoreMethods(store, isAsync) {
   var methods = null;
 
   if (isAsync) {
@@ -393,7 +393,13 @@ function getStateMethods(store, isAsync) {
   } else {
     methods = {
       getState: store.getState,
-      dispatch: store.dispatch
+      dispatch: function dispatch(action) {
+        if (Object.prototype.toString.call(action) === "[object Object]" && action.type) {
+          return store.dispatch(action);
+        }
+
+        throw new Error('Signal actions should dispatch only plain object redux actions');
+      }
     };
   }
 
