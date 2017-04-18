@@ -86,6 +86,34 @@ lab.experiment('#appstate', function () {
     done();
   });
 
+  lab.test('should throw error if dispatch something different than plain object', (done) => {
+    function sync ({ dispatch }) {
+      dispatch([]);
+    }
+
+    var signal = appstate.create([ sync ]);
+
+    signal(store)
+      .catch((e) => {
+        assert(e instanceof Error);
+        done();
+      });
+  });
+
+  lab.test('should throw error if dispatch object without type property', (done) => {
+    function sync ({ dispatch }) {
+      dispatch({});
+    }
+
+    var signal = appstate.create([ sync ]);
+
+    signal(store)
+      .catch((e) => {
+        assert(e instanceof Error);
+        done();
+      });
+  });
+
   lab.test('should run signal with one async action and output to success', function (done) {
     function async ({ output }) {
       output.success();
