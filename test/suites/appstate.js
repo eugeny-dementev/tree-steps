@@ -2,7 +2,7 @@ var Lab = require('lab');
 var lab = exports.lab = Lab.script();
 var assert = require('assert');
 var { createStore } = require('redux');
-var appstate = require('../../dist/appstate');
+var appstate = require('../../src/appstate');
 
 function reducer (state = {}, action) {
   switch (action.type) {
