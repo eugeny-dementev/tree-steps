@@ -1,6 +1,6 @@
 {
   "name": "reduxed-action-tree",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Barebone state manager implementation based on Cerebral action-tree and Catbee appstate",
   "main": "./dist/middleware.js",
   "devDependencies": {
