@@ -7,8 +7,8 @@ module.exports = function configureMiddleware (params = {}) {
     logSuccess = () => {},
   } = params;
 
-  return function middleware (store) {
-    return (next) => function actionApplier (actions, args, ...rest) {
+  return function appstateMiddleware (store) {
+    return (next) => function signalExecutor (actions, args, ...rest) {
       if (!Array.isArray(actions)) {
         return next(actions, args, ...rest);
       }
