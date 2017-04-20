@@ -1,6 +1,6 @@
 {
   "name": "redux-appstate",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Barebone state manager implementation based on Cerebral action-tree and Catbee appstate",
   "main": "./dist/middleware.js",
   "devDependencies": {
