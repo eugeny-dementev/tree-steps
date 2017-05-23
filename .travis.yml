@@ -1,3 +1,12 @@
 language: node_js
+
 node_js:
-  - "node"
+  - 4
+  - 6
+  - node
+
+install:
+  - npm install
+
+script:
+  - npm test
