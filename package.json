@@ -3,6 +3,9 @@
   "version": "1.0.1",
   "description": "Barebone state manager implementation based on Cerebral action-tree and Catbee appstate",
   "main": "./dist/middleware.js",
+  "engines": {
+    "node": ">=6.0.0"
+  },
   "devDependencies": {
     "eslint": "^3.19.0",
     "lab": "^13.0.2",
